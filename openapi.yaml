@@ -1,0 +1,249 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: tutor
+    description: Ganjedi AI tutoring operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [tutor]
+      summary: Get study dashboard summary
+      description: Returns the starter dashboard metrics and recent practice activity.
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /practice/generate:
+    post:
+      operationId: generatePracticeQuestion
+      tags: [tutor]
+      summary: Generate a Digital SAT practice question
+      description: Generates one realistic Digital SAT-style question for the selected subject, module, skill, and difficulty.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PracticeQuestionInput"
+      responses:
+        "200":
+          description: Generated practice question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PracticeQuestion"
+        "400":
+          description: Invalid practice question request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [tutor]
+      summary: Ask Ganjedi AI a SAT question
+      description: Sends a text or image-based question to the SAT tutor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: Tutor response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessageResponse"
+        "400":
+          description: Invalid chat request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Tutor provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    ChatHistoryItem:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+      required: [role, content]
+    ChatMessageInput:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+        subject:
+          type: string
+          enum: [reading-writing, math]
+        module:
+          type: string
+          enum: [module-1, module-2-easy, module-2-hard]
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatHistoryItem"
+        imageBase64:
+          type: ["string", "null"]
+        imageMimeType:
+          type: ["string", "null"]
+      required: [message, subject, module]
+    ChatMessageResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+        model:
+          type: string
+        imageAnalyzed:
+          type: boolean
+      required: [reply, model, imageAnalyzed]
+    PracticeQuestionInput:
+      type: object
+      properties:
+        subject:
+          type: string
+          enum: [reading-writing, math]
+        module:
+          type: string
+          enum: [module-1, module-2-easy, module-2-hard]
+        skill:
+          type: string
+          enum:
+            - command-of-evidence
+            - craft-and-structure
+            - heart-of-algebra
+            - problem-solving-data-analysis
+        difficulty:
+          type: string
+          enum: [standard, easy, hard]
+      required: [subject, module, skill, difficulty]
+    PracticeOption:
+      type: object
+      properties:
+        label:
+          type: string
+        text:
+          type: string
+      required: [label, text]
+    PracticeQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+        subject:
+          type: string
+          enum: [reading-writing, math]
+        module:
+          type: string
+          enum: [module-1, module-2-easy, module-2-hard]
+        skill:
+          type: string
+        difficulty:
+          type: string
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/PracticeOption"
+        correctAnswer:
+          type: string
+        explanation:
+          type: string
+        strategy:
+          type: string
+      required:
+        - id
+        - subject
+        - module
+        - skill
+        - difficulty
+        - question
+        - options
+        - correctAnswer
+        - explanation
+        - strategy
+    ActivityItem:
+      type: object
+      properties:
+        title:
+          type: string
+        meta:
+          type: string
+        score:
+          type: number
+        tone:
+          type: string
+          enum: [green, amber, violet]
+      required: [title, meta, score, tone]
+    DashboardSummary:
+      type: object
+      properties:
+        streakDays:
+          type: number
+        questionsSolved:
+          type: number
+        accuracy:
+          type: number
+        focusMinutes:
+          type: number
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+      required: [streakDays, questionsSolved, accuracy, focusMinutes, recentActivity]
+
